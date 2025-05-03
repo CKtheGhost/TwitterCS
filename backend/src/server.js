@@ -8,14 +8,33 @@ const helmet = require('helmet');
 const mongoSanitize = require('express-mongo-sanitize');
 const xss = require('xss-clean');
 
-// Import routes
-const authRoutes = require('./routes/auth-simple'); // Use simplified auth for initial setup
-const userRoutes = require('./routes/users');
-const contentRoutes = require('./routes/content');
-const engagementRoutes = require('./routes/engagement');
-const consentRoutes = require('./routes/consent');
-const verificationRoutes = require('./routes/verification');
-const questRoutes = require('./routes/quests');
+// Import routes - use simplified versions for initial setup
+const fs = require('fs');
+const path = require('path');
+
+// Helper function to safely require a file
+const safeRequire = (routePath, fallbackPath) => {
+  try {
+    return require(routePath);
+  } catch (error) {
+    console.warn(`Warning: Could not load ${routePath}. Using fallback.`);
+    try {
+      return require(fallbackPath || routePath);
+    } catch (fallbackError) {
+      console.error(`Error loading fallback route: ${fallbackError.message}`);
+      return express.Router(); // Return empty router as last resort
+    }
+  }
+};
+
+// Load routes with fallbacks
+const authRoutes = safeRequire('./routes/auth-simple');
+const userRoutes = safeRequire('./routes/users-simple');
+const contentRoutes = safeRequire('./routes/content');
+const engagementRoutes = safeRequire('./routes/engagement');
+const consentRoutes = safeRequire('./routes/consent-simple', './routes/consent');
+const verificationRoutes = safeRequire('./routes/verification-simple');
+const questRoutes = safeRequire('./routes/quests-simple');
 
 // Import middleware - use simplified versions for initial setup
 const rateLimiter = require('./middleware/rateLimiter-simple');
