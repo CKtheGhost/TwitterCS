@@ -1,4 +1,4 @@
-name: social-engagement
+name: social-engagement-platform
 services:
 - name: api
   github:
