@@ -6,7 +6,7 @@
 const express = require('express');
 const router = express.Router();
 const { check } = require('express-validator');
-const auth = require('../middleware/auth');
+const auth = require('../middleware/auth-simple');
 
 /**
  * @route   GET /api/content
@@ -72,35 +72,39 @@ router.get('/:id', async (req, res) => {
  * @desc    Create new content
  * @access  Private
  */
-router.post('/', 
-  [
-    auth, 
-    [
-      check('title', 'Title is required').not().isEmpty(),
-      check('body', 'Content body is required').not().isEmpty(),
-      check('type', 'Content type is required').not().isEmpty()
-    ]
-  ], 
-  async (req, res) => {
-    try {
-      // Placeholder for content creation
-      // This would typically create a new content item in the database
-      const { title, body, type } = req.body;
-      
-      const newContent = {
-        id: Date.now().toString(),
-        title,
-        body,
-        type,
-        author: req.user.id,
-        published: new Date().toISOString()
-      };
-      
-      res.status(201).json(newContent);
-    } catch (err) {
-      console.error(err.message);
-      res.status(500).json({ error: 'Server error' });
+router.post('/', auth, async (req, res) => {
+  try {
+    // Placeholder for content creation
+    // This would typically create a new content item in the database
+    const { title, body, type } = req.body;
+    
+    // Simple validation
+    if (!title) {
+      return res.status(400).json({ error: 'Title is required' });
     }
+    
+    if (!body) {
+      return res.status(400).json({ error: 'Content body is required' });
+    }
+    
+    if (!type) {
+      return res.status(400).json({ error: 'Content type is required' });
+    }
+    
+    const newContent = {
+      id: Date.now().toString(),
+      title,
+      body,
+      type,
+      author: req.user.id,
+      published: new Date().toISOString()
+    };
+    
+    res.status(201).json(newContent);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ error: 'Server error' });
+  }
 });
 
 /**
