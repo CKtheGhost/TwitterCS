@@ -53,12 +53,19 @@ const connectDB = async () => {
     
     // Validate connection string format
     if (mongoURI.includes('<') && mongoURI.includes('>')) {
-      logger.error('MongoDB URI contains placeholder values (e.g., <username>, <password>). Please update with actual values.');
-      logger.error('See README.md or MONGODB_GUIDE.md for configuration instructions.');
+      logger.warn('MongoDB URI contains placeholder values (e.g., <username>, <password>). Please update with actual values.');
+      logger.warn('See README.md or MONGODB_GUIDE.md for configuration instructions.');
+      logger.warn('Continuing without MongoDB connection for initial setup...');
       
-      if (process.env.NODE_ENV === 'production') {
-        process.exit(1);
-      }
+      // Return early but don't exit
+      return { 
+        connection: { 
+          host: 'none',
+          readyState: 0,
+          name: 'none',
+          db: { listCollections: () => ({ toArray: () => Promise.resolve([]) }) }
+        } 
+      };
     }
     
     logger.info(`Connecting to MongoDB at: ${sanitizeUri(mongoURI)}`);
