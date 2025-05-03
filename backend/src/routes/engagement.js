@@ -6,7 +6,7 @@
 const express = require('express');
 const router = express.Router();
 const { check } = require('express-validator');
-const auth = require('../middleware/auth');
+const auth = require('../middleware/auth-simple');
 
 /**
  * @route   GET /api/engagement
@@ -70,31 +70,29 @@ router.delete('/like/:contentId', auth, async (req, res) => {
  * @desc    Comment on a content item
  * @access  Private
  */
-router.post(
-  '/comment/:contentId',
-  [
-    auth,
-    [check('text', 'Comment text is required').not().isEmpty()]
-  ],
-  async (req, res) => {
-    try {
-      // Placeholder for comment logic
-      // This would typically save a comment in the database
-      const comment = {
-        id: Date.now().toString(),
-        contentId: req.params.contentId,
-        userId: req.user.id,
-        text: req.body.text,
-        createdAt: new Date().toISOString()
-      };
-      
-      res.status(201).json(comment);
-    } catch (err) {
-      console.error(err.message);
-      res.status(500).json({ error: 'Server error' });
+router.post('/comment/:contentId', auth, async (req, res) => {
+  try {
+    // Simple validation
+    if (!req.body.text) {
+      return res.status(400).json({ error: 'Comment text is required' });
     }
+    
+    // Placeholder for comment logic
+    // This would typically save a comment in the database
+    const comment = {
+      id: Date.now().toString(),
+      contentId: req.params.contentId,
+      userId: req.user.id,
+      text: req.body.text,
+      createdAt: new Date().toISOString()
+    };
+    
+    res.status(201).json(comment);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ error: 'Server error' });
   }
-);
+});
 
 /**
  * @route   GET /api/engagement/comments/:contentId
