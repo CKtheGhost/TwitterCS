@@ -134,6 +134,11 @@ app.use(notFoundHandler);
 // Global error handling middleware - use the standardized error middleware
 app.use(errorMiddleware);
 
+// Add a root route for health check
+app.get('/', (req, res) => {
+  res.status(200).json({ status: 'ok', message: 'Server is running' });
+});
+
 // Start server
 const PORT = process.env.PORT || 5000;
 const server = app.listen(PORT, () => {
