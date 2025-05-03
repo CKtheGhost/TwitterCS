@@ -1,0 +1,81 @@
+**/.claude/settings.local.json
+
+# Node.js
+node_modules/
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+# But keep example files
+!.env.example
+!.env.production.example
+!.env.staging.example
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+
+# Coverage directory
+coverage/
+
+# IDE and editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Temporary files
+.tmp/
+tmp/
+temp/
+
+# MongoDB data
+data/db/
+
+# Docker volumes
+**/mongodb_data/
+
+# SSL certificates (for local dev)
+*.pem
+*.key
+*.crt
+*.cert
+*.csr
+
+# Dependency directories
+.pnp/
+.pnp.js
+
+# Testing
+.nyc_output
+
+# Debug
+.node_repl_history
+.npm
+.eslintcache
+.stylelintcache
+
+# Cache
+.cache/
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock

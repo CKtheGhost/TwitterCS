@@ -1,0 +1,137 @@
+name: Smart Contracts CI/CD
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'contracts/**'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'contracts/**'
+  workflow_dispatch:
+    inputs:
+      deployment_network:
+        description: 'Network to deploy to (sepolia, mumbai, ethereum, polygon)'
+        required: true
+        default: 'sepolia'
+        type: choice
+        options:
+          - sepolia
+          - mumbai
+          - ethereum
+          - polygon
+
+jobs:
+  test:
+    name: Compile and Test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./contracts
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: './contracts/package-lock.json'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Compile contracts
+        run: npm run compile
+      
+      - name: Run tests
+        run: npm test
+      
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: contract-artifacts
+          path: contracts/artifacts
+  
+  deploy:
+    name: Deploy Contracts
+    needs: test
+    if: |
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./contracts
+    
+    env:
+      INFURA_API_KEY: ${{ secrets.INFURA_API_KEY }}
+      PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
+      ETHERSCAN_API_KEY: ${{ secrets.ETHERSCAN_API_KEY }}
+      POLYGONSCAN_API_KEY: ${{ secrets.POLYGONSCAN_API_KEY }}
+      TREASURY_ADDRESS: ${{ secrets.TREASURY_ADDRESS }}
+      VERIFICATION_ENABLED: 'true'
+      EXPORT_ABIS: 'true'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: './contracts/package-lock.json'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Download artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: contract-artifacts
+          path: contracts/artifacts
+      
+      - name: Determine deployment network
+        id: network
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "NETWORK=${{ github.event.inputs.deployment_network }}" >> $GITHUB_ENV
+          else
+            echo "NETWORK=sepolia" >> $GITHUB_ENV
+          fi
+      
+      - name: Validate mainnet deployment
+        if: env.NETWORK == 'ethereum' || env.NETWORK == 'polygon'
+        run: |
+          echo "⚠️ Deploying to ${{ env.NETWORK }} mainnet!"
+          echo "Performing extra security checks..."
+          npm run compile
+          npm test
+          echo "Security checks passed!"
+      
+      - name: Deploy contracts
+        run: npm run deploy:${{ env.NETWORK }}
+      
+      - name: Upload deployment artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: deployment-${{ env.NETWORK }}
+          path: contracts/deployments
+      
+      - name: Export ABIs to frontend
+        run: npm run export-abis
+      
+      - name: Commit updates to frontend
+        uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          commit_message: "chore: update contract ABIs after deployment to ${{ env.NETWORK }}"
+          file_pattern: frontend/src/utils/abis/*.json
+          branch: ${{ github.ref }}
+          commit_user_name: GitHub Actions
+          commit_user_email: github-actions@github.com
+          commit_author: GitHub Actions <github-actions@github.com>

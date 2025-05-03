@@ -1,0 +1,39 @@
+{
+  "name": "social-engagement-platform-contracts",
+  "version": "1.0.0",
+  "description": "Smart contracts for the social engagement platform",
+  "main": "index.js",
+  "scripts": {
+    "test": "hardhat test",
+    "compile": "hardhat compile",
+    "clean": "hardhat clean",
+    "node": "hardhat node",
+    "deploy:local": "hardhat run scripts/deploy-full.js --network localhost",
+    "deploy:sepolia": "hardhat run scripts/deploy-full.js --network sepolia",
+    "deploy:mumbai": "hardhat run scripts/deploy-full.js --network mumbai",
+    "deploy:mainnet": "hardhat run scripts/deploy-full.js --network ethereum",
+    "deploy:polygon": "hardhat run scripts/deploy-full.js --network polygon",
+    "verify:sepolia": "hardhat verify --network sepolia",
+    "verify:mumbai": "hardhat verify --network mumbai",
+    "verify:mainnet": "hardhat verify --network ethereum",
+    "verify:polygon": "hardhat verify --network polygon",
+    "export-abis": "node scripts/export-abis.js"
+  },
+  "keywords": [
+    "ethereum",
+    "smart-contracts",
+    "solidity",
+    "hardhat"
+  ],
+  "author": "",
+  "license": "MIT",
+  "type": "commonjs",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "hardhat": "^2.23.0",
+    "dotenv": "^16.0.3"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^5.0.0"
+  }
+}

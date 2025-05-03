@@ -1,0 +1,122 @@
+name: Integrated Deployment
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+      contract_network:
+        description: 'Blockchain network for contracts'
+        required: true
+        default: 'sepolia'
+        type: choice
+        options:
+          - sepolia
+          - mumbai
+          - ethereum
+          - polygon
+
+jobs:
+  deploy-contracts:
+    name: Deploy Smart Contracts
+    uses: ./.github/workflows/contracts.yml
+    with:
+      deployment_network: ${{ github.event.inputs.contract_network }}
+    secrets: inherit
+  
+  deploy-backend:
+    name: Deploy Backend
+    needs: deploy-contracts
+    uses: ./.github/workflows/backend.yml
+    with:
+      environment: ${{ github.event.inputs.environment }}
+    secrets: inherit
+  
+  deploy-frontend:
+    name: Deploy Frontend
+    needs: [deploy-contracts, deploy-backend]
+    uses: ./.github/workflows/frontend.yml
+    with:
+      environment: ${{ github.event.inputs.environment }}
+    secrets: inherit
+  
+  update-config:
+    name: Update Configuration
+    needs: [deploy-contracts, deploy-backend, deploy-frontend]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Download deployment artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: deployment-${{ github.event.inputs.contract_network }}
+          path: contracts/deployments
+      
+      - name: Copy contract addresses to backend
+        run: |
+          export CONTRACT_ADDRESSES=$(cat contracts/deployments/${{ github.event.inputs.contract_network }}.json | jq -c '{socialToken, contentRegistry, engagement, competition}')
+          
+          if [ "${{ github.event.inputs.environment }}" == "production" ]; then
+            SSH_HOST="${{ secrets.PRODUCTION_SSH_HOST }}"
+            SSH_USER="${{ secrets.PRODUCTION_SSH_USERNAME }}"
+            SSH_KEY="${{ secrets.PRODUCTION_SSH_PRIVATE_KEY }}"
+            SSH_PORT="${{ secrets.PRODUCTION_SSH_PORT }}"
+          else
+            SSH_HOST="${{ secrets.STAGING_SSH_HOST }}"
+            SSH_USER="${{ secrets.STAGING_SSH_USERNAME }}"
+            SSH_KEY="${{ secrets.STAGING_SSH_PRIVATE_KEY }}"
+            SSH_PORT="${{ secrets.STAGING_SSH_PORT }}"
+          fi
+          
+          # Create a temporary file with the SSH key
+          echo "$SSH_KEY" > ssh_key.pem
+          chmod 600 ssh_key.pem
+          
+          # Update environment variables on the server
+          ssh -i ssh_key.pem -p $SSH_PORT $SSH_USER@$SSH_HOST "cd /opt/social-engagement && echo \"CONTRACT_ADDRESSES='$CONTRACT_ADDRESSES'\" >> .env.${{ github.event.inputs.environment }} && echo \"NETWORK=${{ github.event.inputs.contract_network }}\" >> .env.${{ github.event.inputs.environment }}"
+          
+          # Remove the temporary SSH key file
+          rm ssh_key.pem
+      
+      - name: Create frontend environment file
+        run: |
+          # Extract contract addresses
+          SOCIAL_TOKEN=$(cat contracts/deployments/${{ github.event.inputs.contract_network }}.json | jq -r '.socialToken')
+          CONTENT_REGISTRY=$(cat contracts/deployments/${{ github.event.inputs.contract_network }}.json | jq -r '.contentRegistry')
+          ENGAGEMENT=$(cat contracts/deployments/${{ github.event.inputs.contract_network }}.json | jq -r '.engagement')
+          COMPETITION=$(cat contracts/deployments/${{ github.event.inputs.contract_network }}.json | jq -r '.competition')
+          
+          # Create environment file
+          cat << EOF > frontend/.env.${{ github.event.inputs.environment }}
+          # Environment: ${{ github.event.inputs.environment }}
+          # Network: ${{ github.event.inputs.contract_network }}
+          REACT_APP_DEFAULT_NETWORK=${{ github.event.inputs.contract_network }}
+          REACT_APP_SOCIAL_TOKEN_ADDRESS=$SOCIAL_TOKEN
+          REACT_APP_CONTENT_REGISTRY_ADDRESS=$CONTENT_REGISTRY
+          REACT_APP_ENGAGEMENT_ADDRESS=$ENGAGEMENT
+          REACT_APP_COMPETITION_ADDRESS=$COMPETITION
+          EOF
+          
+          if [ "${{ github.event.inputs.environment }}" == "production" ]; then
+            echo "REACT_APP_API_URL=https://api.socialengagement.example.com" >> frontend/.env.${{ github.event.inputs.environment }}
+          else
+            echo "REACT_APP_API_URL=https://staging-api.socialengagement.example.com" >> frontend/.env.${{ github.event.inputs.environment }}
+          fi
+      
+      - name: Commit changes
+        uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          commit_message: "chore: update environment configuration for ${{ github.event.inputs.environment }} on ${{ github.event.inputs.contract_network }}"
+          file_pattern: "frontend/.env.${{ github.event.inputs.environment }}"
+          branch: ${{ github.ref }}
+          commit_user_name: GitHub Actions
+          commit_user_email: github-actions@github.com
+          commit_author: GitHub Actions <github-actions@github.com>

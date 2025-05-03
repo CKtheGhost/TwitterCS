@@ -1,0 +1,62 @@
+# Dependency directories
+node_modules
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+
+# Environment and config files
+.env
+.env.*
+!.env.example
+.env.local
+.env.development
+.env.test
+.env.production
+
+# Version control
+.git
+.gitignore
+.gitattributes
+
+# Development files
+*.md
+!README.md
+!MONGODB_GUIDE.md
+!PRODUCTION_DEPLOYMENT.md
+.vscode
+.idea
+*.swp
+*.swo
+.DS_Store
+coverage
+.nyc_output
+docs
+
+# Docker files
+Dockerfile
+docker-compose*.yml
+.dockerignore
+
+# Logs
+logs
+*.log
+
+# Temp files
+tmp
+temp
+.tmp
+
+# Test files
+__tests__
+tests
+jest.config.js
+
+# Build artifacts
+dist
+build
+*.tsbuildinfo
+
+# Large files and binaries
+*.zip
+*.tar.gz
+*.tgz
