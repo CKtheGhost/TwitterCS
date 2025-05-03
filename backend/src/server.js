@@ -38,7 +38,7 @@ const questRoutes = safeRequire('./routes/quests-simple');
 
 // Import middleware - use simplified versions for initial setup
 const rateLimiter = require('./middleware/rateLimiter-simple');
-const securityMiddleware = require('./middleware/security');
+const securityMiddleware = require('./middleware/security-simple');
 const { addPrivacyHeaders } = require('./middleware/consent-simple');
 
 // Initialize express app
